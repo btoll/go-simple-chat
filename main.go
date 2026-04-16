@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -11,13 +10,11 @@ import (
 	"sync"
 )
 
-type Username string
 type ChatMessage struct {
-	c      net.Conn
-	sender Username
+	sender *Client
 	msg    string
 }
-type ChatRoom map[net.Conn]Username
+type ChatRoom map[net.Conn]*Client
 type Chat struct {
 	c         ChatRoom
 	broadcast chan ChatMessage
@@ -27,7 +24,7 @@ type Chat struct {
 func NewChat() *Chat {
 	return &Chat{
 		c:         make(ChatRoom),
-		broadcast: make(chan ChatMessage),
+		broadcast: make(chan ChatMessage, 32),
 		m:         &sync.Mutex{},
 	}
 }
@@ -35,15 +32,13 @@ func NewChat() *Chat {
 var chat = NewChat()
 
 func handleNewConnection(conn net.Conn) {
-	defer conn.Close()
-
 	_, err := conn.Write([]byte("What's your name?: "))
 	if err != nil {
-		fmt.Println("got here")
 		// TODO
+		fmt.Printf("err=%+v\n", err)
 	}
 
-	b := make([]byte, 128)
+	b := make([]byte, 64)
 	n, err := conn.Read(b)
 	if err != nil {
 		// This will handle a SIGINT at first connection and before a name is entered at the prompt.
@@ -54,39 +49,29 @@ func handleNewConnection(conn net.Conn) {
 		// TODO
 	}
 
-	username := Username(string(b[:n-1]))
-	register(conn, username)
+	c := NewClient(conn, Username(string(b[:n-1])))
 	conn.Write([]byte(
-		fmt.Sprintf("Welcome to the the simple chat server, %s!\n", username),
+		fmt.Sprintf("Welcome to the the simple chat server, %s!\n", c.user),
 	))
+	go c.Broadcast()
+	go c.Listen()
+}
 
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
-		chat.broadcast <- ChatMessage{
-			c:      conn,
-			sender: username,
-			msg:    scanner.Text(),
-		}
-	}
-
-	// If we got here, then the client sent a SIGINT (which returns `false` to scanner.Scan()),
-	// and we need to remove them from the connection map.
+func deregister(client *Client) {
+	// Maybe want different reasons as to why a connection was deleted.
 	chat.m.Lock()
-	deregister(conn, username)
+	if _, found := chat.c[client.conn]; found {
+		close(client.ch)
+		delete(chat.c, client.conn)
+		fmt.Printf("User %s just left the chat!\n", client.user)
+	}
 	chat.m.Unlock()
 }
 
-// This must be called with chat.m held b/c deregister is call from multiple paths.
-func deregister(conn net.Conn, username Username) {
-	delete(chat.c, conn)
-	// Probably want to message different reasons as to why a connection was deleted.
-	fmt.Printf("User %s just left the chat!\n", username)
-}
-
-func register(conn net.Conn, username Username) {
+func register(client *Client) {
 	chat.m.Lock()
-	chat.c[conn] = Username(username)
-	fmt.Printf("User %s just joined the chat!\n", username)
+	chat.c[client.conn] = client
+	fmt.Printf("User %s just joined the chat!\n", client.user)
 	chat.m.Unlock()
 }
 
@@ -105,18 +90,9 @@ func main() {
 			select {
 			case message := <-chat.broadcast:
 				chat.m.Lock()
-				for c := range chat.c {
-					if c != message.c {
-						// Might want to write outside of the lock in case it is
-						// slow or blocks.
-						_, err := c.Write([]byte(
-							fmt.Sprintf("(%s) %s\n", message.sender, message.msg),
-						))
-						if err != nil {
-							// We're assuming here that the reason it failed is b/c
-							// it's a dead connection.
-							deregister(c, message.sender)
-						}
+				for _, client := range chat.c {
+					if client != message.sender {
+						client.ch <- fmt.Sprintf("(%s) %s\n", message.sender.user, message.msg)
 					}
 				}
 				chat.m.Unlock()
@@ -132,5 +108,4 @@ func main() {
 		}
 		go handleNewConnection(conn)
 	}
-
 }
