@@ -1,0 +1,57 @@
+# go-simple-chat
+
+## Test
+
+In another terminal:
+
+```bash
+$ pgrep -a client
+3200110 /home/btoll/.cache/go-build/01/01b95733dfe120c2d8247ca028f94078653d4773f4255bbff9fc0e70255081c3-d/client
+```
+
+- `SIGINT`
+    + `kill -INT 3200110`
+    + `kill -SIGINT 3200110`
+    + `kill -2 3200110`
+
+- `SIGKILL`
+    + `kill -KILL 3200110`
+    + `kill -SIGKILL 3200110`
+    + `kill -9 3200110`
+
+- `SIGTERM`
+    + `kill 3200110`
+    + `kill -TERM 3200110`
+    + `kill -SIGTERM 3200110`
+    + `kill -15 3200110`
+
+```bash
+$ kill -l 11
+SEGV
+```
+
+```bash
+$ kill -L
+ 1) SIGHUP       2) SIGINT       3) SIGQUIT      4) SIGILL       5) SIGTRAP
+ 6) SIGABRT      7) SIGBUS       8) SIGFPE       9) SIGKILL     10) SIGUSR1
+11) SIGSEGV     12) SIGUSR2     13) SIGPIPE     14) SIGALRM     15) SIGTERM
+16) SIGSTKFLT   17) SIGCHLD     18) SIGCONT     19) SIGSTOP     20) SIGTSTP
+21) SIGTTIN     22) SIGTTOU     23) SIGURG      24) SIGXCPU     25) SIGXFSZ
+26) SIGVTALRM   27) SIGPROF     28) SIGWINCH    29) SIGIO       30) SIGPWR
+31) SIGSYS      34) SIGRTMIN    35) SIGRTMIN+1  36) SIGRTMIN+2  37) SIGRTMIN+3
+38) SIGRTMIN+4  39) SIGRTMIN+5  40) SIGRTMIN+6  41) SIGRTMIN+7  42) SIGRTMIN+8
+43) SIGRTMIN+9  44) SIGRTMIN+10 45) SIGRTMIN+11 46) SIGRTMIN+12 47) SIGRTMIN+13
+48) SIGRTMIN+14 49) SIGRTMIN+15 50) SIGRTMAX-14 51) SIGRTMAX-13 52) SIGRTMAX-12
+53) SIGRTMAX-11 54) SIGRTMAX-10 55) SIGRTMAX-9  56) SIGRTMAX-8  57) SIGRTMAX-7
+58) SIGRTMAX-6  59) SIGRTMAX-5  60) SIGRTMAX-4  61) SIGRTMAX-3  62) SIGRTMAX-2
+63) SIGRTMAX-1  64) SIGRTMAX
+```
+
+## License
+
+[GPLv3](COPYING)
+
+## Author
+
+[Benjamin Toll](https://benjamintoll.com)
+
