@@ -1,5 +1,7 @@
 # go-simple-chat
 
+See the article [`On Remote Debugging A Pod With Delve`](https://benjamintoll.com/2026/06/20/on-remote-debugging-a-pod-with-delve/).
+
 ## Use
 
 ```bash
